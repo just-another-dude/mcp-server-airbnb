@@ -11,8 +11,7 @@ import {
 } from "@modelcontextprotocol/sdk/types.js";
 import fetch from "node-fetch";
 import * as cheerio from "cheerio";
-import { cleanObject, flattenArraysInObject, pickBySchema, diagnoseJsonPath, findPdpPresentation, extractAmenities, extractHighlights, keyAmenityGroups } from "./util.js";
-import robotsParser from "robots-parser";
+import { cleanObject, flattenArraysInObject, pickBySchema, diagnoseJsonPath, findPdpPresentation, extractAmenities, extractHighlights, keyAmenityGroups, isPathAllowed as isRobotsPathAllowed } from "./util.js";
 import { readFileSync } from 'fs';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
@@ -343,14 +342,9 @@ async function fetchRobotsTxt() {
 }
 
 function isPathAllowed(path: string): boolean {  
-  if (!robotsTxtContent) {
-    return true; // If we couldn't fetch robots.txt, assume allowed
-  }
-
   try {
-    const robots = robotsParser(`${BASE_URL}/robots.txt`, robotsTxtContent);
-    const allowed = robots.isAllowed(path, USER_AGENT);
-    
+    const allowed = isRobotsPathAllowed(robotsTxtContent, path, USER_AGENT);
+
     if (!allowed) {
       log('warn', 'Path disallowed by robots.txt', { path, userAgent: USER_AGENT });
     }
