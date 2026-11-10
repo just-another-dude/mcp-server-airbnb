@@ -135,7 +135,6 @@ Search for Airbnb listings with comprehensive filtering options.
 - `maxPrice` (optional): Maximum price per night
 - `cursor` (optional): Pagination cursor for browsing results
 - `propertyType` (optional): Filter by property type — `entire_home`, `private_room`, `shared_room`, or `hotel_room`
-- `ignoreRobotsText` (optional): Override robots.txt for this request
 
 **Returns:**
 - Search results with property details, pricing, and direct links
@@ -154,7 +153,6 @@ Get detailed information about a specific Airbnb listing.
 - `children` (optional): Number of children (default: 0)
 - `infants` (optional): Number of infants (default: 0)
 - `pets` (optional): Number of pets (default: 0)
-- `ignoreRobotsText` (optional): Override robots.txt for this request
 
 **Returns:**
 - Detailed property information including:

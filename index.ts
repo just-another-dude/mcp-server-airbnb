@@ -5,13 +5,13 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import {
   CallToolRequestSchema,
   ListToolsRequestSchema,
-  Tool,
   McpError,
   ErrorCode,
 } from "@modelcontextprotocol/sdk/types.js";
 import fetch from "node-fetch";
 import * as cheerio from "cheerio";
 import { cleanObject, flattenArraysInObject, pickBySchema, diagnoseJsonPath, findPdpPresentation, extractAmenities, extractHighlights, keyAmenityGroups, isPathAllowed as isRobotsPathAllowed } from "./util.js";
+import { AIRBNB_TOOLS } from "./tools.js";
 import { readFileSync } from 'fs';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
@@ -30,119 +30,6 @@ function getVersion(): string {
 }
 
 const VERSION = getVersion();
-
-// Tool definitions
-const AIRBNB_SEARCH_TOOL: Tool = {
-  name: "airbnb_search",
-  description: "Search for Airbnb listings with various filters and pagination. Provide direct links to the user",
-  inputSchema: {
-    type: "object",
-    properties: {
-      location: {
-        type: "string",
-        description: "Location to search for (city, state, etc.)"
-      },
-      placeId: {
-        type: "string",
-        description: "Google Maps Place ID (overrides the location parameter)"
-      },
-      checkin: {
-        type: "string",
-        description: "Check-in date (YYYY-MM-DD)"
-      },
-      checkout: {
-        type: "string",
-        description: "Check-out date (YYYY-MM-DD)"
-      },
-      adults: {
-        type: "number",
-        description: "Number of adults"
-      },
-      children: {
-        type: "number",
-        description: "Number of children"
-      },
-      infants: {
-        type: "number",
-        description: "Number of infants"
-      },
-      pets: {
-        type: "number",
-        description: "Number of pets"
-      },
-      minPrice: {
-        type: "number",
-        description: "Minimum price for the stay"
-      },
-      maxPrice: {
-        type: "number",
-        description: "Maximum price for the stay"
-      },
-      cursor: {
-        type: "string",
-        description: "Base64-encoded string used for Pagination"
-      },
-      propertyType: {
-        type: "string",
-        enum: ["entire_home", "private_room", "shared_room", "hotel_room"],
-        description: "Filter by property type: 'entire_home' (entire homes/apartments), 'private_room' (private rooms in shared homes), 'shared_room' (shared/dorm-style rooms), 'hotel_room' (hotel rooms)"
-      },
-      ignoreRobotsText: {
-        type: "boolean",
-        description: "Ignore robots.txt rules for this request"
-      }
-    },
-    required: ["location"]
-  }
-};
-
-const AIRBNB_LISTING_DETAILS_TOOL: Tool = {
-  name: "airbnb_listing_details",
-  description: "Get detailed information about a specific Airbnb listing. Provide direct links to the user",
-  inputSchema: {
-    type: "object",
-    properties: {
-      id: {
-        type: "string",
-        description: "The Airbnb listing ID"
-      },
-      checkin: {
-        type: "string",
-        description: "Check-in date (YYYY-MM-DD)"
-      },
-      checkout: {
-        type: "string",
-        description: "Check-out date (YYYY-MM-DD)"
-      },
-      adults: {
-        type: "number",
-        description: "Number of adults"
-      },
-      children: {
-        type: "number",
-        description: "Number of children"
-      },
-      infants: {
-        type: "number",
-        description: "Number of infants"
-      },
-      pets: {
-        type: "number",
-        description: "Number of pets"
-      },
-      ignoreRobotsText: {
-        type: "boolean",
-        description: "Ignore robots.txt rules for this request"
-      }
-    },
-    required: ["id"]
-  }
-};
-
-const AIRBNB_TOOLS = [
-  AIRBNB_SEARCH_TOOL,
-  AIRBNB_LISTING_DETAILS_TOOL,
-] as const;
 
 // Utility functions
 const USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
@@ -407,7 +294,6 @@ async function handleAirbnbSearch(params: any) {
     maxPrice,
     cursor,
     propertyType,
-    ignoreRobotsText = false,
   } = params;
 
   // Build search URL
@@ -469,7 +355,7 @@ async function handleAirbnbSearch(params: any) {
 
   // Check if path is allowed by robots.txt
   const path = searchUrl.pathname + searchUrl.search;
-  if (!ignoreRobotsText && !isPathAllowed(path)) {
+  if (!isPathAllowed(path)) {
     log('warn', 'Search blocked by robots.txt', { path, url: searchUrl.toString() });
     return {
       content: [{
@@ -477,7 +363,7 @@ async function handleAirbnbSearch(params: any) {
         text: JSON.stringify({
           error: robotsErrorMessage,
           url: searchUrl.toString(),
-          suggestion: "Consider enabling 'ignore_robots_txt' in extension settings if needed for testing"
+          suggestion: "robots.txt can only be ignored server-wide, by the operator: set IGNORE_ROBOTS_TXT=true or start the server with --ignore-robots-txt"
         }, null, 2)
       }],
       isError: true
@@ -634,7 +520,6 @@ async function handleAirbnbListingDetails(params: any) {
     children = 0,
     infants = 0,
     pets = 0,
-    ignoreRobotsText = false,
   } = params;
 
   // Build listing URL
@@ -660,7 +545,7 @@ async function handleAirbnbListingDetails(params: any) {
 
   // Check if path is allowed by robots.txt
   const path = listingUrl.pathname + listingUrl.search;
-  if (!ignoreRobotsText && !isPathAllowed(path)) {
+  if (!isPathAllowed(path)) {
     log('warn', 'Listing details blocked by robots.txt', { path, url: listingUrl.toString() });
     return {
       content: [{
@@ -668,7 +553,7 @@ async function handleAirbnbListingDetails(params: any) {
         text: JSON.stringify({
           error: robotsErrorMessage,
           url: listingUrl.toString(),
-          suggestion: "Consider enabling 'ignore_robots_txt' in extension settings if needed for testing"
+          suggestion: "robots.txt can only be ignored server-wide, by the operator: set IGNORE_ROBOTS_TXT=true or start the server with --ignore-robots-txt"
         }, null, 2)
       }],
       isError: true
