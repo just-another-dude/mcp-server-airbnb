@@ -1,0 +1,4 @@
+# gitleaks config. Default rules; add an allowlist entry only for a confirmed
+# false positive, never for a path because the secrets in it are real.
+[extend]
+useDefault = true

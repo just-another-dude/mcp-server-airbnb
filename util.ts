@@ -1,3 +1,5 @@
+import robotsParser from "robots-parser";
+
 export function cleanObject(obj: any) {
   Object.keys(obj).forEach(key => {
     if (obj[key] == null || key === "__typename") {
@@ -191,4 +193,17 @@ export function extractHighlights(pdp: any): any | null {
     .filter(Boolean);
 
   return mapped.length ? { highlights: mapped } : null;
+}
+
+const ROBOTS_BASE_URL = "https://www.airbnb.com";
+
+export function isPathAllowed(robotsTxtContent: string, path: string, userAgent: string): boolean {
+  if (!robotsTxtContent) {
+    return true; // If we couldn't fetch robots.txt, assume allowed
+  }
+  const robots = robotsParser(`${ROBOTS_BASE_URL}/robots.txt`, robotsTxtContent);
+  // robots-parser only answers for absolute URLs on the robots.txt origin; for a
+  // bare path it returns undefined, which used to make every request look
+  // disallowed. Anything it still cannot answer is treated as disallowed.
+  return robots.isAllowed(new URL(path, ROBOTS_BASE_URL).toString(), userAgent) === true;
 }

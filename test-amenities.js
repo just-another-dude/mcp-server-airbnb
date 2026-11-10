@@ -36,7 +36,7 @@ function call(id) {
     setTimeout(() => {
       send({ jsonrpc: "2.0", method: "notifications/initialized" });
       send({ jsonrpc: "2.0", id: 2, method: "tools/call", params: {
-        name: "airbnb_listing_details", arguments: { id, ignoreRobotsText: true } } });
+        name: "airbnb_listing_details", arguments: { id } } });
     }, 700);
   });
 }
